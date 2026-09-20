@@ -77,6 +77,7 @@ const meta: Record<Notification["type"], { icon: typeof Heart; tint: string }> =
 const filters = ["All", "Mentions", "Follows", "Likes", "Tips", "Spaces"] as const;
 
 function NotificationsPage() {
+  const navigate = useNavigate();
   const [items, setItems] = useState<Notification[]>([]);
   const [filter, setFilter] = useState<(typeof filters)[number]>("All");
   const [loading, setLoading] = useState(false);
@@ -182,7 +183,7 @@ function NotificationsPage() {
                 if (n.entity_type === "post" && n.entity_id) {
                   navigate({ to: "/post/$id", params: { id: n.entity_id } });
                 } else if (n.entity_type === "conversation" && n.entity_id) {
-                  navigate({ to: "/messages", search: { c: n.entity_id } as never });
+                  navigate({ to: "/messages", search: { id: n.entity_id } });
                 } else if (n.actor_id) {
                   navigate({ to: "/profile", search: { id: n.actor_id } });
                 }
