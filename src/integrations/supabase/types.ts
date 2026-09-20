@@ -528,6 +528,8 @@ export type Database = {
           actor_id: string | null
           body: string
           created_at: string
+          entity_id: string | null
+          entity_type: string | null
           id: string
           read: boolean
           recipient_id: string
@@ -537,6 +539,8 @@ export type Database = {
           actor_id?: string | null
           body: string
           created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
           id?: string
           read?: boolean
           recipient_id: string
@@ -546,6 +550,8 @@ export type Database = {
           actor_id?: string | null
           body?: string
           created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
           id?: string
           read?: boolean
           recipient_id?: string
