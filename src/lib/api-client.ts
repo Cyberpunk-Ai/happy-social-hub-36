@@ -138,7 +138,20 @@ export async function getPosts(
 }
 
 
+/** A single post by id, used by shared links (`/post/<id>`). */
+export async function getPostById(id: string): Promise<Post | null> {
+  if (!isDbId(id)) return null;
+  const { data, error } = await db.from("posts").select("*").eq("id", id).maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  const post = rowToPost(data);
+  await hydrateAuthors([post.user_id]);
+  await hydrateEngagement([post]);
+  return post;
+}
+
 /** Posts the signed-in user has bookmarked, fetched by join instead of client filtering. */
+
 export async function getBookmarkedPosts(limit = 50): Promise<Post[]> {
   if (!isDbId(me())) return [];
   const { data } = await db
@@ -224,81 +237,29 @@ export async function createPost(input: {
   tags?: string[];
   poll?: any;
 }) {
-  const primaryUserId = me();
-  let authUserId = primaryUserId;
+  const userId = me();
+  if (!isDbId(userId)) throw new Error("Sign in to post");
 
-  try {
-    const { data: authData } = await supabase.auth.getUser();
-    if (authData?.user?.id) {
-      authUserId = authData.user.id;
-    }
-  } catch {
-    /* ignore session lookup failure */
-  }
+  const { data, error } = await db
+    .from("posts")
+    .insert({
+      user_id: userId,
+      content: input.content,
+      image_gradient: input.image_gradient ?? null,
+      media_url: input.media_url ?? null,
+      tags: input.tags ?? [],
+      poll: input.poll ?? null,
+    })
+    .select("*")
+    .single();
+  if (error) throw error;
 
-  const payload = {
-    user_id: authUserId,
-    content: input.content,
-    image_gradient: input.image_gradient ?? null,
-    media_url: input.media_url ?? null,
-    tags: input.tags ?? [],
-    poll: input.poll ?? null,
-  };
-
-  let insertedData: any = null;
-
-  try {
-    const { data, error } = await db.from("posts").insert(payload).select("*").single();
-    if (error) {
-      // If error is code 42501 or user_id mismatch, retry with primaryUserId
-      if (authUserId !== primaryUserId) {
-        const { data: retryData, error: retryError } = await db
-          .from("posts")
-          .insert({ ...payload, user_id: primaryUserId })
-          .select("*")
-          .single();
-        if (!retryError && retryData) {
-          insertedData = retryData;
-        } else {
-          console.warn("Post DB insert retry notice:", retryError);
-        }
-      } else {
-        console.warn("Post DB insert notice:", error);
-      }
-    } else {
-      insertedData = data;
-    }
-  } catch (err) {
-    console.warn("Post insert exception notice:", err);
-  }
-
-  if (insertedData) {
-    const post = rowToPost(insertedData);
-    emitRealtime("post:created", post);
-    return { ...post, post } as Post & { post: Post };
-  }
-
-  // Robust Fallback: create client post if database RLS blocks direct table insert
-  const fallbackPost: Post = {
-    id: `post_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-    user_id: primaryUserId,
-    content: input.content,
-    image_gradient: input.image_gradient ?? null,
-    media_url: input.media_url ?? null,
-    image_url: input.media_url ?? null,
-    tags: input.tags ?? [],
-    created_at: nowIso(),
-    likeCount: 0,
-    commentCount: 0,
-    repostCount: 0,
-    viewCount: 1,
-    poll: input.poll ?? null,
-  };
-
-  await hydrateAuthors([primaryUserId]);
-  emitRealtime("post:created", fallbackPost);
-  return { ...fallbackPost, post: fallbackPost } as Post & { post: Post };
+  await hydrateAuthors([userId]);
+  const post = rowToPost(data);
+  emitRealtime("post:created", post);
+  return { ...post, post } as Post & { post: Post };
 }
+
 
 export async function deletePost(id: string) {
   try {
@@ -313,58 +274,42 @@ export async function deletePost(id: string) {
 
 async function toggleRelation(table: string, postId: string, event: string, countField: string) {
   const userId = me();
-  if (!userId || userId === "guest") throw new Error("Sign in to interact with posts");
-  
-  let authUserId = userId;
-  try {
-    const { data: authData } = await supabase.auth.getUser();
-    if (authData?.user?.id) authUserId = authData.user.id;
-  } catch {}
+  if (!isDbId(userId)) throw new Error("Sign in to interact with posts");
+  if (!isDbId(postId)) throw new Error("This post cannot be interacted with yet");
 
-  let existing: any = null;
-  try {
-    const { data } = await db
-      .from(table)
-      .select("post_id")
-      .eq("post_id", postId)
-      .in("user_id", [userId, authUserId])
-      .maybeSingle();
-    existing = data;
-  } catch {
-    /* fallback to local toggle */
-  }
+  const { data: existing, error: readError } = await db
+    .from(table)
+    .select("post_id")
+    .eq("post_id", postId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (readError) throw readError;
 
-  let active = !existing;
+  const active = !existing;
   if (existing) {
-    try {
-      await db.from(table).delete().eq("post_id", postId).in("user_id", [userId, authUserId]);
-    } catch {}
+    const { error } = await db
+      .from(table)
+      .delete()
+      .eq("post_id", postId)
+      .eq("user_id", userId);
+    if (error) throw error;
   } else {
-    try {
-      const { error } = await db.from(table).insert({ post_id: postId, user_id: authUserId });
-      if (error && authUserId !== userId) {
-        await db.from(table).insert({ post_id: postId, user_id: userId });
-      }
-    } catch {
-      /* non-fatal for local UI state */
-    }
+    const { error } = await db.from(table).insert({ post_id: postId, user_id: userId });
+    // A duplicate row means the relation already existed; anything else is real.
+    if (error && error.code !== "23505") throw error;
   }
 
-  let count = 0;
-  try {
-    const { count: exactCount } = await db
-      .from(table)
-      .select("post_id", { count: "exact", head: true })
-      .eq("post_id", postId);
-    count = exactCount ?? 0;
-  } catch {
-    count = active ? 1 : 0;
-  }
+  const { count: exactCount } = await db
+    .from(table)
+    .select("post_id", { count: "exact", head: true })
+    .eq("post_id", postId);
+  const count = exactCount ?? (active ? 1 : 0);
 
   const result = { active, count };
   emitRealtime(event, { id: postId, postId, [countField]: result.count, active: result.active });
   return result;
 }
+
 
 export async function toggleLikePost(postId: string) {
   const { active, count } = await toggleRelation("likes", postId, "post_like_updated", "likeCount");
@@ -397,56 +342,38 @@ export async function getMyEngagement(postIds: string[]) {
 
 export async function addPostComment(postId: string, content: string) {
   const userId = me();
-  if (!userId || userId === "guest") throw new Error("Sign in to comment");
+  if (!isDbId(userId)) throw new Error("Sign in to comment");
+  if (!isDbId(postId)) throw new Error("This post cannot be commented on yet");
 
-  let authUserId = userId;
-  try {
-    const { data: authData } = await supabase.auth.getUser();
-    if (authData?.user?.id) authUserId = authData.user.id;
-  } catch {}
-
-  let dataRow: any = null;
-  try {
-    const { data, error } = await db
-      .from("comments")
-      .insert({ post_id: postId, user_id: authUserId, content })
-      .select("*")
-      .single();
-
-    if (error && authUserId !== userId) {
-      const { data: retryData } = await db
-        .from("comments")
-        .insert({ post_id: postId, user_id: userId, content })
-        .select("*")
-        .single();
-      dataRow = retryData;
-    } else {
-      dataRow = data;
-    }
-  } catch (err) {
-    console.warn("Comment DB insert exception:", err);
-  }
+  const { data: dataRow, error } = await db
+    .from("comments")
+    .insert({ post_id: postId, user_id: userId, content })
+    .select("*")
+    .single();
+  if (error) throw error;
 
   const comment: PostComment = {
-    id: dataRow?.id ?? `comment_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+    id: dataRow.id,
     post_id: postId,
     user_id: userId,
-    content: content,
-    created_at: dataRow?.created_at ?? nowIso(),
+    content,
+    created_at: dataRow.created_at ?? nowIso(),
   };
 
-  let count = 1;
-  try {
-    const { count: exactCount } = await db
-      .from("comments")
-      .select("id", { count: "exact", head: true })
-      .eq("post_id", postId);
-    count = exactCount ?? 1;
-  } catch {}
+  const { count } = await db
+    .from("comments")
+    .select("id", { count: "exact", head: true })
+    .eq("post_id", postId);
+  const commentCount = count ?? 1;
 
-  emitRealtime("new_comment", { postId, data: { ...comment, post_id: postId }, commentCount: count });
-  return { comment, commentCount: count };
+  emitRealtime("new_comment", {
+    postId,
+    data: { ...comment, post_id: postId },
+    commentCount,
+  });
+  return { comment, commentCount };
 }
+
 
 export async function getPostComments(postId: string): Promise<PostComment[]> {
   try {
@@ -582,80 +509,33 @@ export async function createStory(input: {
   mood?: string | undefined;
   stickers?: any[];
 }) {
-  const primaryUserId = me();
-  let authUserId = primaryUserId;
-  try {
-    const { data: authData } = await supabase.auth.getUser();
-    if (authData?.user?.id) authUserId = authData.user.id;
-  } catch {}
+  const userId = me();
+  if (!isDbId(userId)) throw new Error("Sign in to share a story");
 
   const expires = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-  let insertedData: any = null;
+  const { data, error } = await db
+    .from("stories")
+    .insert({
+      user_id: userId,
+      text: input.text ?? null,
+      gradient: input.gradient ?? null,
+      media_url: input.media_url ?? null,
+      location: input.location ?? null,
+      mood: input.mood ?? null,
+      stickers: input.stickers ?? [],
+      type: input.media_url ? "image" : "gradient",
+      expires_at: expires,
+    })
+    .select("*")
+    .single();
+  if (error) throw error;
 
-  try {
-    const { data, error } = await db
-      .from("stories")
-      .insert({
-        user_id: authUserId,
-        text: input.text ?? null,
-        gradient: input.gradient ?? null,
-        media_url: input.media_url ?? null,
-        location: input.location ?? null,
-        mood: input.mood ?? null,
-        stickers: input.stickers ?? [],
-        type: input.media_url ? "image" : "gradient",
-        expires_at: expires,
-      })
-      .select("*")
-      .single();
-
-    if (error && authUserId !== primaryUserId) {
-      const { data: retryData } = await db
-        .from("stories")
-        .insert({
-          user_id: primaryUserId,
-          text: input.text ?? null,
-          gradient: input.gradient ?? null,
-          media_url: input.media_url ?? null,
-          location: input.location ?? null,
-          mood: input.mood ?? null,
-          stickers: input.stickers ?? [],
-          type: input.media_url ? "image" : "gradient",
-          expires_at: expires,
-        })
-        .select("*")
-        .single();
-      insertedData = retryData;
-    } else {
-      insertedData = data;
-    }
-  } catch (err) {
-    console.warn("Story DB insert notice:", err);
-  }
-
-  const story = insertedData
-    ? rowToStory(insertedData)
-    : {
-        id: `story_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-        user_id: primaryUserId,
-        type: (input.media_url ? "image" : "gradient") as "image" | "gradient",
-        gradient: input.gradient ?? undefined,
-        media_url: input.media_url ?? undefined,
-        image_url: input.media_url ?? undefined,
-        text: input.text ?? undefined,
-        created_at: nowIso(),
-        expires_at: expires,
-        view_count: 1,
-        likes_count: 0,
-        location: input.location ?? undefined,
-        mood: input.mood ?? undefined,
-        stickers: input.stickers ?? [],
-      };
-
-  await hydrateAuthors([primaryUserId]);
+  const story = rowToStory(data);
+  await hydrateAuthors([userId]);
   emitRealtime("new_story", { story, data: story });
   return { story };
 }
+
 
 export async function deleteStory(id: string) {
   const { error } = await db.from("stories").delete().eq("id", id);
@@ -1106,50 +986,37 @@ export async function getOrCreateConversation(participantId: string): Promise<st
 }
 
 export async function sendMessage(target: string, body: string, mediaUrl?: string | null) {
-  const isConversation = /^[0-9a-f]{8}-/i.test(target);
-  let conversationId = isConversation ? target : "";
-  try {
-    if (!conversationId) {
-      conversationId = await getOrCreateConversation(target);
-    }
-  } catch (err) {
-    console.warn("getOrCreateConversation notice:", err);
-    conversationId = target || `conv_${Date.now()}`;
+  const userId = me();
+  if (!isDbId(userId)) throw new Error("Sign in to send messages");
+  const text = body.trim();
+  if (!text && !mediaUrl) throw new Error("Write a message first");
+
+  // `target` is either an existing conversation id or the person to talk to.
+  let conversationId = target;
+  const { data: existingConversation } = isDbId(target)
+    ? await db.from("conversations").select("id").eq("id", target).maybeSingle()
+    : { data: null as any };
+  if (!existingConversation?.id) {
+    conversationId = await getOrCreateConversation(target);
   }
 
-  try {
-    const { data, error } = await db
-      .from("messages")
-      .insert({ conversation_id: conversationId, sender_id: me(), body, media_url: mediaUrl ?? null })
-      .select("*")
-      .single();
-    if (!error && data) {
-      await db
-        .from("conversations")
-        .update({ preview: body.slice(0, 120), updated_at: nowIso() })
-        .eq("id", conversationId);
-      emitRealtime("message:created", data);
-      return { message: data as Message, conversationId };
-    }
-    if (error) {
-      console.warn("sendMessage DB notice:", error.message);
-    }
-  } catch (err) {
-    console.warn("sendMessage notice:", err);
-  }
+  const { data, error } = await db
+    .from("messages")
+    .insert({
+      conversation_id: conversationId,
+      sender_id: userId,
+      body: text,
+      media_url: mediaUrl ?? null,
+    })
+    .select("*")
+    .single();
+  if (error) throw error;
 
-  // Fallback optimistic message
-  const fallbackMsg: Message = {
-    id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-    conversation_id: conversationId,
-    sender_id: me(),
-    body,
-    media_url: mediaUrl ?? null,
-    created_at: nowIso(),
-  };
-  emitRealtime("message:created", fallbackMsg);
-  return { message: fallbackMsg, conversationId };
+  // conversations.preview / updated_at are maintained by a database trigger.
+  emitRealtime("message:created", data);
+  return { message: data as Message, conversationId };
 }
+
 
 /** Reaction counts keyed by message id, then emoji. */
 export type ReactionMap = Record<string, Record<string, number>>;
