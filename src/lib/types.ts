@@ -241,6 +241,9 @@ export interface Notification {
   body: string;
   created_at: string;
   read: boolean;
+  /** What the notification points at, so the UI can open it. */
+  entity_type?: "post" | "profile" | "conversation" | null;
+  entity_id?: string | null;
 }
 
 export interface TrendingTag {
