@@ -97,16 +97,37 @@ function AdminPage() {
 
   if (access !== "granted") {
     return (
-      <div className="mx-auto flex min-h-[60vh] max-w-md flex-col items-center justify-center gap-3 px-6 text-center">
-        <h1 className="text-2xl font-extrabold">
+      <div className="mx-auto flex min-h-[70vh] w-full max-w-md flex-col items-center justify-center gap-4 px-6 text-center">
+        <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-brand/10 text-brand">
+          <ShieldCheck className="h-7 w-7" />
+        </div>
+        <h1 className="text-2xl font-extrabold sm:text-3xl">
           {access === "checking" ? "Checking access…" : "Admin access required"}
         </h1>
-        {access === "denied" ? (
-          <p className="text-sm text-muted-foreground">
-            This console is limited to Starpace administrators and moderators. Sign in with an
-            account that has been given access to continue.
-          </p>
-        ) : null}
+        {access === "checking" ? (
+          <div className="h-2 w-32 animate-pulse rounded-full bg-foreground/10" />
+        ) : (
+          <>
+            <p className="text-sm text-muted-foreground">
+              This console is limited to Starpace administrators and moderators. Sign in with an
+              account that has been given access to continue.
+            </p>
+            <div className="flex w-full flex-col gap-2 sm:flex-row sm:justify-center">
+              <Link
+                to="/auth"
+                className="min-h-[44px] rounded-full bg-brand px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+              >
+                Sign in
+              </Link>
+              <Link
+                to="/feed"
+                className="min-h-[44px] rounded-full border border-border px-5 py-2.5 text-sm font-bold text-muted-foreground transition-colors hover:bg-foreground/5"
+              >
+                Back to feed
+              </Link>
+            </div>
+          </>
+        )}
       </div>
     );
   }
