@@ -318,12 +318,12 @@ function ProfilePage() {
               </div>
             </div>
 
-            <div className="mt-4">
-              <h1 className="flex items-center gap-2 text-2xl font-extrabold tracking-tight flex-wrap">
-                <span>{userProfile.display_name}</span>
+            <div className="mt-4 min-w-0">
+              <h1 className="flex min-w-0 flex-wrap items-center gap-2 text-xl font-extrabold tracking-tight sm:text-2xl">
+                <span className="min-w-0 break-words">{userProfile.display_name}</span>
                 <UserBadge isMe={isMe} plan={userProfile.plan} verified={userProfile.verified} size="md" />
               </h1>
-              <p className="text-sm text-muted-foreground">@{userProfile.username}</p>
+              <p className="truncate text-sm text-muted-foreground">@{userProfile.username}</p>
 
               {isMe && isPlus && branding.tagline && (
                 <p className="mt-1 text-xs font-semibold text-brand">✨ {branding.tagline}</p>
