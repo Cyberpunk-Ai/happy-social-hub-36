@@ -135,7 +135,9 @@ export function TipModal({ isOpen, onClose, recipient, postId }: TipModalProps) 
                   ${(earnings?.total ?? 0).toFixed(2)}
                 </span>
                 <span className="text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2.5 py-1 rounded-full">
-                  100% Payout Rate
+                  {(earnings?.platformFeePercent ?? 0) === 0
+                    ? "You keep 100%"
+                    : `After ${earnings?.platformFeePercent}% platform fee`}
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">
@@ -236,7 +238,8 @@ export function TipModal({ isOpen, onClose, recipient, postId }: TipModalProps) 
                 <Sparkles className="h-3.5 w-3.5" /> Support This Creator
               </span>
               <p className="text-xs text-muted-foreground">
-                100% of your tip goes directly to the creator with zero hidden fees.
+                Your full tip is charged securely by our payment provider — we never store your card
+                details. A small platform fee is deducted from creator earnings at withdrawal.
               </p>
             </div>
 
