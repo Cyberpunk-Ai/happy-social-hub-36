@@ -508,7 +508,7 @@ function Hero() {
               href="#features"
               className="glass-panel flex items-center gap-2 rounded-full px-8 py-4 text-lg font-bold text-gray-800 transition-colors hover:bg-white active:scale-95"
             >
-              <Play className="h-4 w-4 fill-current" /> Watch demo
+              <Play className="h-4 w-4 fill-current" /> See how it works
             </a>
           </div>
           <div className="flex items-center gap-4 pt-2">
@@ -1038,7 +1038,7 @@ function Cta() {
               Ready to light up your world?
             </h2>
             <p className="text-lg text-white/80">
-              Join millions of creators and communities on Spaces. Free forever, upgrade anytime.
+              Join creators and communities on Starpace. Free forever, upgrade anytime.
             </p>
             <form
               className="mx-auto flex max-w-md flex-col gap-3 sm:flex-row"
@@ -1076,16 +1076,40 @@ function Cta() {
 /* ---------------------------------- footer --------------------------------- */
 
 function Footer() {
-  const cols = [
-    { title: "Product", links: ["Features", "Spaces", "Creators", "Pricing"] },
-    { title: "Company", links: ["About", "Careers", "Press", "Blog"] },
-    { title: "Resources", links: ["Help Center", "Community", "Guidelines", "Status"] },
-    { title: "Legal", links: ["Privacy", "Terms", "Cookies", "Licenses"] },
+  // Every link goes somewhere real — no dead placeholder pages.
+  const cols: { title: string; links: { label: string; to?: string; href?: string }[] }[] = [
+    {
+      title: "Product",
+      links: [
+        { label: "Features", href: "#features" },
+        { label: "Creators", href: "#creators" },
+        { label: "Pricing", to: "/pricing" },
+        { label: "Live Spaces", to: "/spaces" },
+      ],
+    },
+    {
+      title: "Community",
+      links: [
+        { label: "Explore", to: "/explore" },
+        { label: "Why people stay", href: "#community" },
+        { label: "Reviews", href: "#testimonials" },
+        { label: "By the numbers", href: "#stats" },
+      ],
+    },
+    {
+      title: "Get started",
+      links: [
+        { label: "Create an account", to: "/auth" },
+        { label: "Sign in", to: "/auth" },
+        { label: "Compare plans", to: "/pricing" },
+        { label: "Support", to: "/settings" },
+      ],
+    },
   ];
   return (
     <footer className="border-t border-gray-200 bg-white/60 pb-10 pt-20">
       <div className="container mx-auto px-6">
-        <div className="mb-20 grid gap-x-16 gap-y-12 md:grid-cols-6">
+        <div className="mb-16 grid gap-x-12 gap-y-10 sm:grid-cols-2 md:mb-20 md:grid-cols-5">
           <div className="md:col-span-2">
             <p className="mb-4 text-2xl font-extrabold tracking-tight">Starpace</p>
             <p className="max-w-xs text-gray-500">
@@ -1099,10 +1123,16 @@ function Footer() {
               </p>
               <ul className="space-y-3 text-sm text-gray-500">
                 {c.links.map((l) => (
-                  <li key={l}>
-                    <a href="#top" className="transition-colors hover:text-brand">
-                      {l}
-                    </a>
+                  <li key={`${c.title}-${l.label}`}>
+                    {l.to ? (
+                      <Link to={l.to} className="transition-colors hover:text-brand">
+                        {l.label}
+                      </Link>
+                    ) : (
+                      <a href={l.href} className="transition-colors hover:text-brand">
+                        {l.label}
+                      </a>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -1110,7 +1140,7 @@ function Footer() {
           ))}
         </div>
         <div className="flex flex-col items-center justify-between gap-4 border-t border-gray-200 pt-8 text-sm text-gray-400 sm:flex-row">
-          <p>© 2026 Spaces. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Starpace. All rights reserved.</p>
           <p>Made for creators, everywhere.</p>
         </div>
       </div>
