@@ -73,8 +73,9 @@ export const getEarnings = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context as any;
-    const profileId = await myProfileId(supabase, userId);
-    const ledger = await computeLedger(supabase, profileId);
+    const profile = await myProfile(supabase, userId);
+    const profileId = profile.id;
+    const ledger = await computeLedger(supabase, profileId, profile.plan);
 
     const senderIds = Array.from(new Set(ledger.tips.map((t) => String(t.from_user_id))));
     let senders: Record<string, any> = {};
@@ -94,6 +95,9 @@ export const getEarnings = createServerFn({ method: "GET" })
 
     return {
       totalEarnings: ledger.totalEarnings,
+      netEarnings: ledger.netEarnings,
+      platformFee: ledger.platformFee,
+      platformFeePercent: ledger.platformFeePercent,
       pendingBalance: ledger.pendingBalance,
       currency: payoutCurrency(),
       minimumPayout: MINIMUM_PAYOUT,
@@ -137,7 +141,7 @@ export const saveTipSettings = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
-    const profileId = await myProfileId(supabase, userId);
+    const profileId = (await myProfile(supabase, userId)).id;
 
     const { error } = await supabase.from("monetization_settings").upsert(
       {
@@ -166,8 +170,9 @@ export const requestPayout = createServerFn({ method: "POST" })
   }))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
-    const profileId = await myProfileId(supabase, userId);
-    const ledger = await computeLedger(supabase, profileId);
+    const profile = await myProfile(supabase, userId);
+    const profileId = profile.id;
+    const ledger = await computeLedger(supabase, profileId, profile.plan);
 
     const amount = Math.round((data.amount ?? ledger.pendingBalance) * 100) / 100;
     if (!(amount > 0)) throw new Error("You don't have anything to withdraw yet.");
