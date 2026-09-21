@@ -233,6 +233,16 @@ function SpacesPage() {
   const [activeSpace, setActiveSpace] = useState<Space | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [reminders, setReminders] = useState<Record<string, boolean>>({});
+
+  // Reminders survive reloads so a scheduled room isn't forgotten.
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem("starpace:space-reminders");
+      if (saved) setReminders(JSON.parse(saved) as Record<string, boolean>);
+    } catch {
+      /* ignore unreadable storage */
+    }
+  }, []);
   const [searchQuery, setSearchQuery] = useState("");
 
   // Create Space Form State
@@ -252,7 +262,7 @@ function SpacesPage() {
     setLoading(true);
     getSpaces()
       .then((data) => {
-        if (data?.spaces && data.spaces.length > 0) setAllSpaces(data.spaces);
+        setAllSpaces(data?.spaces ?? []);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -294,7 +304,13 @@ function SpacesPage() {
     setReminders((prev) => {
       const next = !prev[spaceId];
       toast(next ? "Reminder set! We'll notify you when this Space goes live." : "Reminder removed");
-      return { ...prev, [spaceId]: next };
+      const updated = { ...prev, [spaceId]: next };
+      try {
+        window.localStorage.setItem("starpace:space-reminders", JSON.stringify(updated));
+      } catch {
+        /* ignore unwritable storage */
+      }
+      return updated;
     });
   }
 
