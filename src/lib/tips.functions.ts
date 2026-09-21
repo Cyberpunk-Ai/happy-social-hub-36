@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { splitEarnings } from "@/lib/platform-fee";
 
 /** Real tip earnings for the signed-in creator. */
 export const getMyTipEarnings = createServerFn({ method: "GET" })
@@ -10,11 +11,12 @@ export const getMyTipEarnings = createServerFn({ method: "GET" })
 
     const { data: me } = await supabase
       .from("profiles")
-      .select("id")
+      .select("id, plan")
       .eq("auth_user_id", userId)
       .maybeSingle();
 
-    if (!me) return { total: 0, supporters: 0, recent: [] as any[] };
+    if (!me)
+      return { total: 0, gross: 0, platformFee: 0, platformFeePercent: 0, supporters: 0, recent: [] as any[] };
 
     const { data: tips } = await supabase
       .from("tips")
@@ -47,9 +49,13 @@ export const getMyTipEarnings = createServerFn({ method: "GET" })
       .filter((p: any) => p.status !== "failed")
       .reduce((sum: number, p: any) => sum + Number(p.amount ?? 0), 0);
 
+    const split = splitEarnings(gross, me.plan);
+
     return {
-      total: Math.round((gross - withdrawn) * 100) / 100,
-      gross: Math.round(gross * 100) / 100,
+      total: Math.round(Math.max(0, split.net - withdrawn) * 100) / 100,
+      gross: split.gross,
+      platformFee: split.fee,
+      platformFeePercent: split.percent,
       supporters: new Set(rows.map((t: any) => t.from_user_id)).size,
       recent: rows.slice(0, 8).map((t: any) => ({
         id: t.id,
@@ -70,7 +76,7 @@ export const requestTipPayout = createServerFn({ method: "POST" })
 
     const { data: me } = await supabase
       .from("profiles")
-      .select("id")
+      .select("id, plan")
       .eq("auth_user_id", userId)
       .maybeSingle();
     if (!me) throw new Error("Profile not found");
@@ -82,7 +88,8 @@ export const requestTipPayout = createServerFn({ method: "POST" })
     const withdrawn = (paid ?? [])
       .filter((p: any) => p.status !== "failed")
       .reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0);
-    const available = Math.round((gross - withdrawn) * 100) / 100;
+    const split = splitEarnings(gross, me.plan);
+    const available = Math.round(Math.max(0, split.net - withdrawn) * 100) / 100;
 
     if (available < 10) throw new Error("You need at least $10 in tips before requesting a payout.");
 
