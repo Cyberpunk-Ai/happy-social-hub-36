@@ -1,4 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ShieldCheck } from "lucide-react";
 import { useCallback, useEffect, useState, lazy, Suspense } from "react";
 
 import { AdminAuditLogsTab } from "@/components/admin/AdminAuditLogsTab";
@@ -133,7 +134,7 @@ function AdminPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6">
+    <div className="mx-auto max-w-7xl px-3 py-5 sm:px-4 sm:py-6">
       <AdminHeader
         currentProfile={profile}
         activeRole={activeRole}
@@ -147,13 +148,13 @@ function AdminPage() {
         isRefreshing={refreshing}
       />
 
-      <div className="mb-6 flex flex-wrap gap-2">
+      <div className="mb-6 -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
         {TABS.map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={cn(
-              "rounded-full border px-4 py-1.5 text-xs font-bold capitalize transition-colors",
+              "shrink-0 rounded-full border px-4 py-2 text-xs font-bold capitalize transition-colors min-h-[36px] cursor-pointer",
               tab === t ? "border-brand bg-brand/10 text-brand" : "border-border text-muted-foreground hover:bg-foreground/5",
             )}
           >
