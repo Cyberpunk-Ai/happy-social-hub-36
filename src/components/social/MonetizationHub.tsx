@@ -28,6 +28,8 @@ export function MonetizationHub() {
     loading,
     error,
     totalEarnings,
+    platformFee,
+    platformFeePercent,
     pendingBalance,
     currency,
     minimumPayout,
@@ -53,7 +55,8 @@ export function MonetizationHub() {
     setTipsEnabledDraft(settings.tipsEnabled ?? true);
   }, [settings.minimumTip, settings.tipsEnabled]);
 
-  const platformFee = isPro ? "0% (Keep 100%)" : "5% platform fee";
+  const feeLabel =
+    platformFeePercent === 0 ? "0% (Keep 100%)" : `${platformFeePercent}% platform fee`;
   const pendingRequest = payouts.find((p) => p.status === "pending" || p.status === "reviewing");
 
   const handlePayoutSubmit = async (e: React.FormEvent) => {
@@ -146,7 +149,11 @@ export function MonetizationHub() {
             </span>
             <span className="text-xs font-bold text-emerald-500">All-time</span>
           </div>
-          <p className="text-[0.7rem] text-muted-foreground">Every tip you have received</p>
+          <p className="text-[0.7rem] text-muted-foreground">
+            Every tip you have received{platformFee > 0
+              ? ` · ${currency} ${platformFee.toFixed(2)} platform fee deducted`
+              : ""}
+          </p>
         </div>
 
         <div className="rounded-3xl border border-emerald-500/30 bg-emerald-500/5 p-5 space-y-2 shadow-soft">
@@ -170,7 +177,7 @@ export function MonetizationHub() {
             Platform take rate
           </span>
           <div className="flex items-baseline gap-2">
-            <span className="text-xl sm:text-2xl font-black text-foreground">{platformFee}</span>
+            <span className="text-xl sm:text-2xl font-black text-foreground">{feeLabel}</span>
           </div>
           <p className="text-[0.7rem] text-muted-foreground">
             {isPro ? "Pro 0% fee active" : "Upgrade to Pro for 0% fee"}

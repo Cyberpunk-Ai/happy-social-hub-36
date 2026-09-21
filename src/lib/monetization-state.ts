@@ -40,6 +40,9 @@ interface MonetizationState {
   loading: boolean;
   error: string | null;
   totalEarnings: number;
+  netEarnings: number;
+  platformFee: number;
+  platformFeePercent: number;
   pendingBalance: number;
   currency: string;
   minimumPayout: number;
@@ -52,6 +55,9 @@ const EMPTY: MonetizationState = {
   loading: true,
   error: null,
   totalEarnings: 0,
+  netEarnings: 0,
+  platformFee: 0,
+  platformFeePercent: 0,
   pendingBalance: 0,
   currency: "KES",
   minimumPayout: 10,
@@ -82,6 +88,9 @@ export async function refreshMonetization() {
         loading: false,
         error: null,
         totalEarnings: data.totalEarnings,
+        netEarnings: data.netEarnings,
+        platformFee: data.platformFee,
+        platformFeePercent: data.platformFeePercent,
         pendingBalance: data.pendingBalance,
         currency: data.currency,
         minimumPayout: data.minimumPayout,
