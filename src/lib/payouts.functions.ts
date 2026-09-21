@@ -9,6 +9,7 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { splitEarnings } from "@/lib/platform-fee";
 
 /** Smallest withdrawal we accept, in the payout currency. */
 export const MINIMUM_PAYOUT = 10;
@@ -17,18 +18,21 @@ function payoutCurrency() {
   return process.env["PAYSTACK_CURRENCY"] || "KES";
 }
 
-async function myProfileId(supabase: any, userId: string) {
+async function myProfile(supabase: any, userId: string) {
   const { data } = await supabase
     .from("profiles")
-    .select("id")
+    .select("id, plan")
     .eq("auth_user_id", userId)
     .maybeSingle();
   if (!data?.id) throw new Error("Complete your profile first.");
-  return String(data.id);
+  return { id: String(data.id), plan: String(data.plan ?? "free") };
 }
 
-/** Tips received minus everything already withdrawn (excluding failed requests). */
-async function computeLedger(supabase: any, profileId: string) {
+/**
+ * Tips received, less the platform fee for the creator's plan, less everything
+ * already withdrawn (excluding failed / declined / reversed requests).
+ */
+async function computeLedger(supabase: any, profileId: string, plan: string) {
   const [{ data: tips }, { data: payouts }] = await Promise.all([
     supabase
       .from("tips")
@@ -47,14 +51,18 @@ async function computeLedger(supabase: any, profileId: string) {
   const tipRows = (tips ?? []) as any[];
   const payoutRows = (payouts ?? []) as any[];
 
-  const totalEarnings = tipRows.reduce((sum, t) => sum + Number(t.amount ?? 0), 0);
+  const gross = tipRows.reduce((sum, t) => sum + Number(t.amount ?? 0), 0);
+  const split = splitEarnings(gross, plan);
   const withdrawn = payoutRows
     .filter((p) => p.status !== "failed" && p.status !== "reversed" && p.status !== "declined")
     .reduce((sum, p) => sum + Number(p.amount ?? 0), 0);
 
   return {
-    totalEarnings: Math.round(totalEarnings * 100) / 100,
-    pendingBalance: Math.round(Math.max(0, totalEarnings - withdrawn) * 100) / 100,
+    totalEarnings: split.gross,
+    netEarnings: split.net,
+    platformFee: split.fee,
+    platformFeePercent: split.percent,
+    pendingBalance: Math.round(Math.max(0, split.net - withdrawn) * 100) / 100,
     tips: tipRows,
     payouts: payoutRows,
   };
