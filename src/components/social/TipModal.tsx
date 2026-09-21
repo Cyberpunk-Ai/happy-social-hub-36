@@ -36,6 +36,7 @@ export function TipModal({ isOpen, onClose, recipient, postId }: TipModalProps) 
   const [earnings, setEarnings] = useState<{
     total: number;
     supporters: number;
+    platformFeePercent?: number;
     recent: { id: string; amount: number; message: string; created_at: string; sender: string }[];
   } | null>(null);
 
