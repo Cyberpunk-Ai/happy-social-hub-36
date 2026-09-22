@@ -12,6 +12,7 @@ import { currentUser, profileRegistry, getProfile } from "@/lib/profile-service"
 import type { Post, Profile, Topic, TrendingTag } from "@/lib/types";
 import { getPosts, getUsers, globalSearch, getTopics, getTrendingTags } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
+import { firstMediaUrl } from "@/lib/media";
 
 export const Route = createFileRoute("/explore")({
   validateSearch: (search: Record<string, unknown>): { tag?: string; q?: string; tab?: string } => ({
