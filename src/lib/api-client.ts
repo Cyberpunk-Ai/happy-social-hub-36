@@ -449,7 +449,10 @@ export async function recordPostImpression(postId: string) {
     // A repeat view is rejected by the unique index; that is expected, not a bug.
     const { error } = await db
       .from("post_impressions")
-      .insert({ post_id: postId, user_id: viewer });
+      .upsert(
+        { post_id: postId, user_id: viewer },
+        { onConflict: "post_id,user_id", ignoreDuplicates: true },
+      );
     if (error && error.code !== "23505") throw error;
   } catch {
     /* impressions are best-effort */
