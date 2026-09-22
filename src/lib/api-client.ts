@@ -442,28 +442,25 @@ export async function votePoll(postId: string, optionId: string) {
 
 export async function recordPostImpression(postId: string) {
   if (!isDbId(postId)) return { viewCount: 0 };
-  const userId = me();
-  const viewer = isDbId(userId) ? userId : null;
+  let viewCount = 0;
   try {
-    // A signed-in person counts once per post; the unique index enforces it.
-    // A repeat view is rejected by the unique index; that is expected, not a bug.
-    const { error } = await db
-      .from("post_impressions")
-      .insert({ post_id: postId, user_id: viewer });
-    if (error && error.code !== "23505") throw error;
+    // The database counts one view per viewer per post and hands back the tally,
+    // so a repeat view is a quiet no-op instead of a failed insert.
+    const { data, error } = await db.rpc("record_post_impression", { p_post_id: postId });
+    if (error) throw error;
+    viewCount = typeof data === "number" ? data : 0;
   } catch {
-    /* impressions are best-effort */
+    const { data: postRow } = await db
+      .from("posts")
+      .select("view_count")
+      .eq("id", postId)
+      .maybeSingle();
+    viewCount = postRow?.view_count ?? 0;
   }
-  // Impression rows are admin-only to read, so take the tallied count off the post.
-  const { data: postRow } = await db
-    .from("posts")
-    .select("view_count")
-    .eq("id", postId)
-    .maybeSingle();
-  const viewCount = postRow?.view_count ?? 0;
   emitRealtime("post_view_updated", { postId, viewCount });
   return { viewCount };
 }
+
 
 /* ---------------------------------------------------------------- stories */
 

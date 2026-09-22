@@ -12,6 +12,7 @@ import { currentUser, profileRegistry, getProfile } from "@/lib/profile-service"
 import type { Post, Profile, Topic, TrendingTag } from "@/lib/types";
 import { getPosts, getUsers, globalSearch, getTopics, getTrendingTags } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
+import { firstMediaUrl } from "@/lib/media";
 
 export const Route = createFileRoute("/explore")({
   validateSearch: (search: Record<string, unknown>): { tag?: string; q?: string; tab?: string } => ({
@@ -489,10 +490,10 @@ function ExplorePage() {
                       className="glass-panel overflow-hidden rounded-3xl shadow-soft hover:shadow-lift transition-all hover:-translate-y-1 flex flex-col justify-between"
                     >
                       {/* Media Header / Visual */}
-                      {p.image_url || p.media_url ? (
+                      {firstMediaUrl(p.image_url || p.media_url) ? (
                         <div className="relative aspect-video w-full overflow-hidden bg-black/10">
                           <img
-                            src={p.image_url || p.media_url || ""}
+                            src={firstMediaUrl(p.image_url || p.media_url) || ""}
                             alt={p.content}
                             loading="lazy"
                             decoding="async"

@@ -1,6 +1,7 @@
 import { preloadFeedBundle, PreloadBundleResponse } from "./api-client";
 import type { Post, Story, Space, TrendingTag } from "./types";
 import { optimizeImageUrl } from "./utils";
+import { mediaUrlList } from "./media";
 
 interface MemoryFeedCache {
   bundle: PreloadBundleResponse | null;
@@ -87,10 +88,10 @@ export async function triggerFeedPreload(force = false): Promise<PreloadBundleRe
       // Warm image caches for all story avatars and media
       const imagesToWarm: (string | null | undefined)[] = [];
       bundle.stories.forEach((s) => {
-        imagesToWarm.push(s.media_url);
+        imagesToWarm.push(...mediaUrlList(s.media_url));
       });
       bundle.foryou.forEach((p) => {
-        if (p.media_url) imagesToWarm.push(p.media_url);
+        imagesToWarm.push(...mediaUrlList(p.media_url));
       });
       prewarmImages(imagesToWarm);
 

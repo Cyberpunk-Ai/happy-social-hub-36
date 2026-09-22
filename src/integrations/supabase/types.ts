@@ -1646,6 +1646,7 @@ export type Database = {
         Returns: boolean
       }
       owns_profile: { Args: { _profile_id: string }; Returns: boolean }
+      record_post_impression: { Args: { p_post_id: string }; Returns: number }
     }
     Enums: {
       app_role: "user" | "moderator" | "admin"
