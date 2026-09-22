@@ -1,6 +1,7 @@
 import { preloadFeedBundle, PreloadBundleResponse } from "./api-client";
 import type { Post, Story, Space, TrendingTag } from "./types";
 import { optimizeImageUrl } from "./utils";
+import { mediaUrlList } from "./media";
 
 interface MemoryFeedCache {
   bundle: PreloadBundleResponse | null;
