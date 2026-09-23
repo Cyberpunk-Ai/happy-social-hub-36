@@ -370,7 +370,7 @@ export async function addPostComment(postId: string, content: string, parentId?:
       post_id: postId,
       user_id: userId,
       content: body,
-      parent_id: isDbId(parentId) ? parentId : null,
+      parent_id: parentId && isDbId(parentId) ? parentId : null,
     })
     .select("*")
     .single();
