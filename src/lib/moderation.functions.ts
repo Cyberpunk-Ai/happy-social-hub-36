@@ -124,8 +124,8 @@ export const moderateUser = createServerFn({ method: "POST" })
         type: "system",
         body:
           data.plan === "free"
-            ? "Your plan was changed to Free by the Starpace team."
-            : `Your account was upgraded to ${data.plan === "pro" ? "Pro" : "Plus"} by the Starpace team.`,
+            ? "Your plan was changed to Free by the Spaces1 team."
+            : `Your account was upgraded to ${data.plan === "pro" ? "Pro" : "Plus"} by the Spaces1 team.`,
       });
     }
 

@@ -47,13 +47,13 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/notifications")({
   head: () => ({
     meta: [
-      { title: "Notifications — Starpace" },
+      { title: "Notifications — Spaces1" },
       {
         name: "description",
         content:
           "Every like, follow, mention, live Space invite, and tip in one clean timeline. Stay close to your Spaces community without the noise.",
       },
-      { property: "og:title", content: "Notifications — Starpace" },
+      { property: "og:title", content: "Notifications — Spaces1" },
       {
         property: "og:description",
         content: "Likes, follows, mentions, Space invites, and tips — all in one calm timeline.",

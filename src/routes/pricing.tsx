@@ -26,12 +26,12 @@ export const Route = createFileRoute("/pricing")({
   }),
   head: () => ({
     meta: [
-      { title: "Plans & Perks — Starpace" },
+      { title: "Plans & Perks — Spaces1" },
       {
         name: "description",
         content: "Simple, transparent plans designed for creators, live audio hosts, and media teams.",
       },
-      { property: "og:title", content: "Plans & Perks — Starpace" },
+      { property: "og:title", content: "Plans & Perks — Spaces1" },
       {
         property: "og:description",
         content: "Simple, transparent plans designed for creators, live audio hosts, and media teams.",

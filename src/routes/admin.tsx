@@ -22,9 +22,9 @@ const AdminOverviewTab = lazy(() => import("@/components/admin/AdminOverviewTab"
 export const Route = createFileRoute("/admin")({
   head: () => ({
     meta: [
-      { title: "Admin Console — Starpace" },
+      { title: "Admin Console — Spaces1" },
       { name: "description", content: "Moderation queue, user management, content review, audit logs and platform settings for Spaces administrators." },
-      { property: "og:title", content: "Admin Console — Starpace" },
+      { property: "og:title", content: "Admin Console — Spaces1" },
       { property: "og:description", content: "Moderation, users, content, audit logs and platform settings." },
       { property: "og:type", content: "website" },
       { name: "robots", content: "noindex" },
@@ -110,7 +110,7 @@ function AdminPage() {
         ) : (
           <>
             <p className="text-sm text-muted-foreground">
-              This console is limited to Starpace administrators and moderators. Sign in with an
+              This console is limited to Spaces1 administrators and moderators. Sign in with an
               account that has been given access to continue.
             </p>
             <div className="flex w-full flex-col gap-2 sm:flex-row sm:justify-center">

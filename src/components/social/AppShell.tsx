@@ -123,7 +123,7 @@ function Sidebar({
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand to-brand-pink">
             <Sparkles className="h-5 w-5 text-white" />
           </span>
-          <span className="text-2xl font-extrabold tracking-tight">Starpace</span>
+          <span className="text-2xl font-extrabold tracking-tight">Spaces1</span>
         </Link>
         <button
           onClick={toggleTheme}
@@ -345,7 +345,7 @@ export function AppShell({
           <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-brand to-brand-pink">
             <Sparkles className="h-4 w-4 text-white" />
           </span>
-          <span className="text-lg font-extrabold tracking-tight">Starpace</span>
+          <span className="text-lg font-extrabold tracking-tight">Spaces1</span>
         </Link>
 
         <div className="flex items-center gap-1">

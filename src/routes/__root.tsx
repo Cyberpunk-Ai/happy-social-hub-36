@@ -83,13 +83,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         name: "viewport",
         content: "width=device-width, initial-scale=1, viewport-fit=cover",
       },
-      { title: "Starpace — Creator Social Network" },
+      { title: "Spaces1 — Creator Social Network" },
       {
         name: "description",
         content:
-          "Starpace is the creator social network: live audio spaces, stories, messaging, tips and payouts in one place.",
+          "Spaces1 is the creator social network: live audio spaces, stories, messaging, tips and payouts in one place.",
       },
-      { property: "og:title", content: "Starpace — Creator Social Network" },
+      { property: "og:title", content: "Spaces1 — Creator Social Network" },
       {
         property: "og:description",
         content:

@@ -54,16 +54,16 @@ const AnalyticsDashboard = lazy(() => import("@/components/social/AnalyticsDashb
 export const Route = createFileRoute("/settings")({
   head: () => ({
     meta: [
-      { title: "Settings — Starpace" },
+      { title: "Settings — Spaces1" },
       {
         name: "description",
         content:
-          "Manage your Spaces account: profile details, notification preferences, privacy controls, appearance, and creator tools.",
+          "Manage your Spaces1 account: profile details, notification preferences, privacy controls, appearance, and creator tools.",
       },
-      { property: "og:title", content: "Settings — Starpace" },
+      { property: "og:title", content: "Settings — Spaces1" },
       {
         property: "og:description",
-        content: "Profile, notifications, privacy, appearance, and creator controls for your Spaces account.",
+        content: "Profile, notifications, privacy, appearance, and creator controls for your Spaces1 account.",
       },
     ],
   }),
