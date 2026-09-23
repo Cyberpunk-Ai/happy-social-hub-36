@@ -351,7 +351,7 @@ function SpacesPage() {
         setActiveSpace(newSpace);
       }
     } catch (err: any) {
-      toast.error("Failed to create Space: " + (err.message || "Error"));
+      toast.error(err?.message || "We couldn't start that room. Please try again.");
     } finally {
       setCreating(false);
     }
