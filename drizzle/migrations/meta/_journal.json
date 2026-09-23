@@ -64,6 +64,13 @@
       "when": 1790152520359,
       "tag": "0008_story_visibility_follow_graph",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790152746986,
+      "tag": "0009_nested_comment_replies",
+      "breakpoints": true
     }
   ]
 }
