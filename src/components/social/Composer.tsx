@@ -422,20 +422,43 @@ export function Composer({
             )}
 
             {showLocationPicker && (
-              <div className="mt-2 p-3 rounded-2xl bg-foreground/5 border border-border/80 flex flex-wrap gap-1.5 animate-in fade-in">
-                {sampleLocations.map((loc) => (
-                  <button
-                    key={loc}
-                    type="button"
-                    onClick={() => {
-                      setSelectedLocation(loc);
+              <div className="mt-2 space-y-2 rounded-2xl border border-border/80 bg-foreground/5 p-3 animate-in fade-in">
+                <label
+                  htmlFor="composer-location"
+                  className="block text-xs font-bold text-foreground"
+                >
+                  Where are you?
+                </label>
+                <input
+                  id="composer-location"
+                  type="text"
+                  value={selectedLocation ?? ""}
+                  onChange={(e) => setSelectedLocation(e.target.value || null)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
                       setShowLocationPicker(false);
-                    }}
-                    className="rounded-full bg-card px-3 py-1 text-xs font-semibold hover:border-brand/40 border border-border transition-all active:scale-95"
-                  >
-                    📍 {loc}
-                  </button>
-                ))}
+                    }
+                  }}
+                  placeholder="Type a place — e.g. Nairobi, Kenya"
+                  maxLength={80}
+                  className="min-h-[44px] w-full rounded-xl border border-border bg-card px-3 py-2 text-sm outline-none focus:border-brand"
+                />
+                <div className="flex flex-wrap gap-1.5">
+                  {sampleLocations.map((loc) => (
+                    <button
+                      key={loc}
+                      type="button"
+                      onClick={() => {
+                        setSelectedLocation(loc);
+                        setShowLocationPicker(false);
+                      }}
+                      className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold transition-all hover:border-brand/40 active:scale-95"
+                    >
+                      📍 {loc}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 
