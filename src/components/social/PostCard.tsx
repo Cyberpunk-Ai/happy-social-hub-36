@@ -307,6 +307,102 @@ function PostCardBase({
   const [commentsList, setCommentsList] = useState<Comment[]>(post.comments || []);
   const [commentDraft, setCommentDraft] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
+  const [replyTo, setReplyTo] = useState<{ id: string; name: string } | null>(null);
+  const [collapsedThreads, setCollapsedThreads] = useState<Record<string, boolean>>({});
+
+  // Group comments into a parent -> replies tree so a reply can carry replies.
+  const repliesByParent = useMemo(() => {
+    const map = new Map<string, Comment[]>();
+    for (const c of commentsList) {
+      const key = c.parent_id ? String(c.parent_id) : "";
+      map.set(key, [...(map.get(key) ?? []), c]);
+    }
+    return map;
+  }, [commentsList]);
+  const rootComments = repliesByParent.get("") ?? [];
+
+  /** Renders one comment plus its (collapsible) replies, nested up to 3 deep. */
+  function renderComment(c: Comment, depth: number): JSX.Element {
+    const cAuthor = getProfile(c.user_id);
+    const replies = repliesByParent.get(String(c.id)) ?? [];
+    const collapsed = collapsedThreads[c.id] ?? false;
+    return (
+      <div key={c.id} className={cn(depth > 0 && "ml-4 border-l border-border/60 pl-3 sm:ml-6")}>
+        <div className="flex items-start gap-2.5 text-xs">
+          <Link
+            to="/profile"
+            search={{ id: cAuthor.id, user: cAuthor.username }}
+            className="mt-0.5 shrink-0 transition-transform hover:scale-105 active:scale-95"
+          >
+            <Avatar
+              name={cAuthor.display_name}
+              src={cAuthor.avatar_url}
+              className="h-7 w-7 shrink-0 text-[0.6rem]"
+            />
+          </Link>
+          <div className="min-w-0 flex-1">
+            <div className="rounded-2xl bg-foreground/5 p-2.5">
+              <div className="flex items-baseline justify-between gap-1">
+                <Link
+                  to="/profile"
+                  search={{ id: cAuthor.id, user: cAuthor.username }}
+                  className="inline-flex items-center gap-1 font-bold transition-colors hover:text-brand"
+                >
+                  {cAuthor.display_name}
+                  <UserBadge
+                    plan={cAuthor.plan}
+                    verified={cAuthor.verified}
+                    isMe={c.user_id === currentUser.id}
+                    size="xs"
+                  />
+                </Link>
+                <TimeAgo iso={c.created_at} className="text-[10px] text-muted-foreground" />
+              </div>
+              <div className="mt-1 leading-relaxed text-foreground/90">
+                <ClampText
+                  text={c.content}
+                  lines={4}
+                  limit={240}
+                  render={renderContentWithLinks}
+                />
+              </div>
+            </div>
+            <div className="mt-1 flex items-center gap-3 pl-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setReplyTo({ id: String(c.id), name: cAuthor.display_name });
+                  setShowAllComments(true);
+                }}
+                className="text-[11px] font-bold text-muted-foreground transition-colors hover:text-brand"
+              >
+                Reply
+              </button>
+              {replies.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCollapsedThreads((prev) => ({ ...prev, [c.id]: !collapsed }))
+                  }
+                  className="text-[11px] font-bold text-brand hover:underline"
+                >
+                  {collapsed
+                    ? `Show ${replies.length} ${replies.length === 1 ? "reply" : "replies"}`
+                    : "Hide replies"}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {replies.length > 0 && !collapsed && (
+          <div className="mt-2 space-y-2">
+            {replies.map((r) => renderComment(r, Math.min(depth + 1, 3)))}
+          </div>
+        )}
+      </div>
+    );
+  }
   const [showMenu, setShowMenu] = useState(false);
   const [showImagePreview, setShowImagePreview] = useState(false);
   const [previewMediaUrl, setPreviewMediaUrl] = useState<string | null>(null);
