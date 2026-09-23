@@ -357,24 +357,35 @@ export async function getMyEngagement(postIds: string[]) {
 }
 
 
-export async function addPostComment(postId: string, content: string) {
+export async function addPostComment(postId: string, content: string, parentId?: string | null) {
   const userId = me();
   if (!isDbId(userId)) throw new Error("Sign in to comment");
   if (!isDbId(postId)) throw new Error("This post cannot be commented on yet");
+  const body = content.trim();
+  if (!body) throw new Error("Write something first");
 
   const { data: dataRow, error } = await db
     .from("comments")
-    .insert({ post_id: postId, user_id: userId, content })
+    .insert({
+      post_id: postId,
+      user_id: userId,
+      content: body,
+      parent_id: isDbId(parentId) ? parentId : null,
+    })
     .select("*")
     .single();
-  if (error) throw error;
+  if (error) {
+    console.error("Could not save comment:", error);
+    throw new Error("We couldn't post that reply. Please try again.");
+  }
 
   const comment: PostComment = {
     id: dataRow.id,
     post_id: postId,
     user_id: userId,
-    content,
+    content: body,
     created_at: dataRow.created_at ?? nowIso(),
+    parent_id: dataRow.parent_id ?? null,
   };
 
   const { count } = await db
