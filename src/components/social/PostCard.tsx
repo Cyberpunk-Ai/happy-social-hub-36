@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, memo } from "react";
+import { useState, useEffect, useMemo, useRef, memo } from "react";
+import type { ReactElement } from "react";
 import { Link } from "@tanstack/react-router";
 import { createPortal } from "react-dom";
 import {
@@ -322,7 +323,7 @@ function PostCardBase({
   const rootComments = repliesByParent.get("") ?? [];
 
   /** Renders one comment plus its (collapsible) replies, nested up to 3 deep. */
-  function renderComment(c: Comment, depth: number): JSX.Element {
+  function renderComment(c: Comment, depth: number): ReactElement {
     const cAuthor = getProfile(c.user_id);
     const replies = repliesByParent.get(String(c.id)) ?? [];
     const collapsed = collapsedThreads[c.id] ?? false;
@@ -397,7 +398,7 @@ function PostCardBase({
 
         {replies.length > 0 && !collapsed && (
           <div className="mt-2 space-y-2">
-            {replies.map((r) => renderComment(r, Math.min(depth + 1, 3)))}
+            {replies.map((r: Comment) => renderComment(r, Math.min(depth + 1, 3)))}
           </div>
         )}
       </div>
@@ -1017,7 +1018,7 @@ function PostCardBase({
 
           {/* Comments List */}
           <div className="space-y-3 max-h-80 overflow-y-auto custom-scrollbar pr-1.5">
-            {(showAllComments ? rootComments : rootComments.slice(0, 3)).map((c) =>
+            {(showAllComments ? rootComments : rootComments.slice(0, 3)).map((c: Comment) =>
               renderComment(c, 0),
             )}
 
