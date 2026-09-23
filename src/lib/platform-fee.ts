@@ -4,7 +4,7 @@
  * The fee is taken off the creator's earnings ledger *before* a withdrawal can
  * be requested, so the available balance is always the amount the creator can
  * actually receive. Percentages are environment-swappable and match the public
- * pricing table (free 10%, Plus 5%, Pro keeps 100%).
+ * pricing table (Free 5%, Creator 3%, Studio 1%).
  */
 
 type EnvRecord = Record<string, string | undefined>;
@@ -17,9 +17,9 @@ function pct(key: string, fallback: number): number {
 }
 
 export const PLATFORM_FEE_PERCENT = {
-  free: pct("VITE_PLATFORM_FEE_FREE", 10),
-  plus: pct("VITE_PLATFORM_FEE_PLUS", 5),
-  pro: pct("VITE_PLATFORM_FEE_PRO", 0),
+  free: pct("VITE_PLATFORM_FEE_FREE", 5),
+  plus: pct("VITE_PLATFORM_FEE_PLUS", 3),
+  pro: pct("VITE_PLATFORM_FEE_PRO", 1),
 } as const;
 
 /** Fee percentage retained for a creator on a given plan. */
