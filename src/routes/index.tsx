@@ -1117,7 +1117,7 @@ function Footer() {
   return (
     <footer className="border-t border-gray-200 bg-white/60 pb-10 pt-20">
       <div className="container mx-auto px-6">
-        <div className="mb-16 grid gap-x-12 gap-y-10 sm:grid-cols-2 md:mb-20 md:grid-cols-5">
+        <div className="mb-16 grid gap-x-12 gap-y-10 sm:grid-cols-2 md:mb-20 md:grid-cols-6">
           <div className="md:col-span-2">
             <p className="mb-4 text-2xl font-extrabold tracking-tight">Spaces1</p>
             <p className="max-w-xs text-gray-500">
