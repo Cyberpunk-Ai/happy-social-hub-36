@@ -3,6 +3,7 @@ import { Loader2, Sparkles, CheckCircle2, ArrowRight } from "lucide-react";
 import React, { useState } from "react";
 import { toast } from "sonner";
 
+import { lovable } from "@/integrations/lovable";
 import { supabase } from "@/integrations/supabase/client";
 import { setLoggedOut, useAuth } from "@/lib/auth-state";
 import { cn } from "@/lib/utils";
@@ -65,11 +66,16 @@ function AuthPage() {
   async function handleGoogle() {
     setBusy(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: { redirectTo: `${window.location.origin}/` },
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin,
       });
-      if (error) toast.error(friendlyAuthError(error.message));
+      if (result.error) {
+        toast.error(friendlyAuthError(result.error.message));
+        return;
+      }
+      if (result.redirected) return;
+      // Session was set by the helper — land the person in the app.
+      await navigate({ to: "/feed" });
     } catch (err) {
       toast.error(err instanceof Error ? friendlyAuthError(err.message) : "Google sign-in failed");
     } finally {
