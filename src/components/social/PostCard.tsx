@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, memo } from "react";
+import { useState, useEffect, useMemo, useRef, memo } from "react";
+import type { ReactElement } from "react";
 import { Link } from "@tanstack/react-router";
 import { createPortal } from "react-dom";
 import {
@@ -307,6 +308,102 @@ function PostCardBase({
   const [commentsList, setCommentsList] = useState<Comment[]>(post.comments || []);
   const [commentDraft, setCommentDraft] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
+  const [replyTo, setReplyTo] = useState<{ id: string; name: string } | null>(null);
+  const [collapsedThreads, setCollapsedThreads] = useState<Record<string, boolean>>({});
+
+  // Group comments into a parent -> replies tree so a reply can carry replies.
+  const repliesByParent = useMemo(() => {
+    const map = new Map<string, Comment[]>();
+    for (const c of commentsList) {
+      const key = c.parent_id ? String(c.parent_id) : "";
+      map.set(key, [...(map.get(key) ?? []), c]);
+    }
+    return map;
+  }, [commentsList]);
+  const rootComments = repliesByParent.get("") ?? [];
+
+  /** Renders one comment plus its (collapsible) replies, nested up to 3 deep. */
+  function renderComment(c: Comment, depth: number): ReactElement {
+    const cAuthor = getProfile(c.user_id);
+    const replies = repliesByParent.get(String(c.id)) ?? [];
+    const collapsed = collapsedThreads[c.id] ?? false;
+    return (
+      <div key={c.id} className={cn(depth > 0 && "ml-4 border-l border-border/60 pl-3 sm:ml-6")}>
+        <div className="flex items-start gap-2.5 text-xs">
+          <Link
+            to="/profile"
+            search={{ id: cAuthor.id, user: cAuthor.username }}
+            className="mt-0.5 shrink-0 transition-transform hover:scale-105 active:scale-95"
+          >
+            <Avatar
+              name={cAuthor.display_name}
+              src={cAuthor.avatar_url}
+              className="h-7 w-7 shrink-0 text-[0.6rem]"
+            />
+          </Link>
+          <div className="min-w-0 flex-1">
+            <div className="rounded-2xl bg-foreground/5 p-2.5">
+              <div className="flex items-baseline justify-between gap-1">
+                <Link
+                  to="/profile"
+                  search={{ id: cAuthor.id, user: cAuthor.username }}
+                  className="inline-flex items-center gap-1 font-bold transition-colors hover:text-brand"
+                >
+                  {cAuthor.display_name}
+                  <UserBadge
+                    plan={cAuthor.plan}
+                    verified={cAuthor.verified}
+                    isMe={c.user_id === currentUser.id}
+                    size="xs"
+                  />
+                </Link>
+                <TimeAgo iso={c.created_at} className="text-[10px] text-muted-foreground" />
+              </div>
+              <div className="mt-1 leading-relaxed text-foreground/90">
+                <ClampText
+                  text={c.content}
+                  lines={4}
+                  limit={240}
+                  render={renderContentWithLinks}
+                />
+              </div>
+            </div>
+            <div className="mt-1 flex items-center gap-3 pl-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setReplyTo({ id: String(c.id), name: cAuthor.display_name });
+                  setShowAllComments(true);
+                }}
+                className="text-[11px] font-bold text-muted-foreground transition-colors hover:text-brand"
+              >
+                Reply
+              </button>
+              {replies.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCollapsedThreads((prev) => ({ ...prev, [c.id]: !collapsed }))
+                  }
+                  className="text-[11px] font-bold text-brand hover:underline"
+                >
+                  {collapsed
+                    ? `Show ${replies.length} ${replies.length === 1 ? "reply" : "replies"}`
+                    : "Hide replies"}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {replies.length > 0 && !collapsed && (
+          <div className="mt-2 space-y-2">
+            {replies.map((r: Comment) => renderComment(r, Math.min(depth + 1, 3)))}
+          </div>
+        )}
+      </div>
+    );
+  }
   const [showMenu, setShowMenu] = useState(false);
   const [showImagePreview, setShowImagePreview] = useState(false);
   const [previewMediaUrl, setPreviewMediaUrl] = useState<string | null>(null);
@@ -433,7 +530,7 @@ function PostCardBase({
     setSubmittingComment(true);
     const text = commentDraft.trim();
     try {
-      const res = await addPostComment(post.id, text);
+      const res = await addPostComment(post.id, text, replyTo?.id ?? null);
       const newComment = res.comment as Comment;
       // The same comment also arrives through the realtime bridge, so only add
       // it when it isn't already in the list.
@@ -441,7 +538,9 @@ function PostCardBase({
         prev.some((c) => c.id === newComment.id) ? prev : [...prev, newComment],
       );
       setCommentDraft("");
-      toast.success("Comment added");
+      setReplyTo(null);
+      setShowAllComments(true);
+      toast.success(replyTo ? "Reply added" : "Comment added");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not add your comment");
     } finally {
@@ -912,7 +1011,7 @@ function PostCardBase({
         <Action icon={Share2} label="Share" activeClass="" onClick={handleShare} />
       </footer>
 
-      {/* Expandable Comments Drawer */}
+      {/* Expandable Comments Drawer — threaded, with collapsible replies */}
       {showComments && (
         <div className="mt-4 space-y-3 border-t border-border/60 pt-4 animate-in fade-in duration-200">
           <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
@@ -920,57 +1019,26 @@ function PostCardBase({
           </h4>
 
           {/* Comments List */}
-          <div className="space-y-3 max-h-72 overflow-y-auto custom-scrollbar pr-1.5">
-            {(showAllComments ? commentsList : commentsList.slice(0, 3)).map((c) => {
-              const cAuthor = getProfile(c.user_id);
-              return (
-                <div key={c.id} className="flex items-start gap-2.5 text-xs">
-                  <Link
-                    to="/profile"
-                    search={{ id: cAuthor.id, user: cAuthor.username }}
-                    className="shrink-0 mt-0.5 transition-transform hover:scale-105 active:scale-95"
-                  >
-                    <Avatar
-                      name={cAuthor.display_name}
-                      src={cAuthor.avatar_url}
-                      className="h-7 w-7 text-[0.6rem] shrink-0"
-                    />
-                  </Link>
-                  <div className="flex-1 rounded-2xl bg-foreground/5 p-2.5">
-                    <div className="flex items-baseline justify-between gap-1">
-                      <Link
-                        to="/profile"
-                        search={{ id: cAuthor.id, user: cAuthor.username }}
-                        className="font-bold inline-flex items-center gap-1 hover:text-brand transition-colors"
-                      >
-                        {cAuthor.display_name}
-                        <UserBadge plan={cAuthor.plan} verified={cAuthor.verified} isMe={c.user_id === currentUser.id} size="xs" />
-                      </Link>
-                      <TimeAgo iso={c.created_at} className="text-[10px] text-muted-foreground" />
-                    </div>
-                    <div className="mt-1 text-foreground/90 leading-relaxed">
-                      <ClampText text={c.content} lines={4} limit={240} render={renderContentWithLinks} />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="space-y-3 max-h-80 overflow-y-auto custom-scrollbar pr-1.5">
+            {(showAllComments ? rootComments : rootComments.slice(0, 3)).map((c: Comment) =>
+              renderComment(c, 0),
+            )}
 
-            {commentsList.length > 3 && !showAllComments && (
+            {rootComments.length > 3 && !showAllComments && (
               <button
                 type="button"
                 onClick={() => setShowAllComments(true)}
-                className="w-full text-center text-xs font-bold text-brand hover:text-brand-pink hover:underline py-2 transition-all"
+                className="min-h-[44px] w-full text-center text-xs font-bold text-brand hover:text-brand-pink hover:underline transition-all"
               >
-                Show all {commentsList.length} comments
+                Show all {rootComments.length} comments
               </button>
             )}
 
-            {commentsList.length > 3 && showAllComments && (
+            {rootComments.length > 3 && showAllComments && (
               <button
                 type="button"
                 onClick={() => setShowAllComments(false)}
-                className="w-full text-center text-xs font-bold text-brand hover:text-brand-pink hover:underline py-2 transition-all"
+                className="min-h-[44px] w-full text-center text-xs font-bold text-brand hover:text-brand-pink hover:underline transition-all"
               >
                 Collapse comments
               </button>
@@ -984,32 +1052,46 @@ function PostCardBase({
           </div>
 
           {/* Add comment input */}
-          <form onSubmit={handleCommentSubmit} className="flex items-center gap-2 pt-1">
-            <Link
-              to="/profile"
-              search={{ id: activeUser.id, user: activeUser.username }}
-              className="shrink-0 transition-transform hover:scale-105 active:scale-95"
-            >
-              <Avatar
-                name={activeUser.display_name}
-                src={activeUser.avatar_url}
-                className="h-8 w-8 text-xs shrink-0"
+          <form onSubmit={handleCommentSubmit} className="space-y-2 pt-1">
+            {replyTo && (
+              <div className="flex items-center justify-between gap-2 rounded-xl bg-brand/10 px-3 py-2 text-[11px] font-semibold text-brand">
+                <span className="truncate">Replying to {replyTo.name}</span>
+                <button
+                  type="button"
+                  onClick={() => setReplyTo(null)}
+                  className="rounded-full px-2 py-1 text-muted-foreground hover:text-foreground"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <Link
+                to="/profile"
+                search={{ id: activeUser.id, user: activeUser.username }}
+                className="shrink-0 transition-transform hover:scale-105 active:scale-95"
+              >
+                <Avatar
+                  name={activeUser.display_name}
+                  src={activeUser.avatar_url}
+                  className="h-8 w-8 text-xs shrink-0"
+                />
+              </Link>
+              <input
+                type="text"
+                value={commentDraft}
+                onChange={(e) => setCommentDraft(e.target.value)}
+                placeholder={replyTo ? `Reply to ${replyTo.name}...` : "Write a comment..."}
+                className="min-h-[44px] flex-1 rounded-full border border-transparent bg-foreground/5 px-4 text-xs outline-none focus:border-brand/40"
               />
-            </Link>
-            <input
-              type="text"
-              value={commentDraft}
-              onChange={(e) => setCommentDraft(e.target.value)}
-              placeholder="Write a reply..."
-              className="flex-1 rounded-full bg-foreground/5 px-4 py-2 text-xs outline-none border border-transparent focus:border-brand/40"
-            />
-            <button
-              type="submit"
-              disabled={!commentDraft.trim() || submittingComment}
-              className="rounded-full bg-brand text-white p-2 hover:bg-brand/90 transition-all disabled:opacity-40"
-            >
-              <Send className="h-3.5 w-3.5" />
-            </button>
+              <button
+                type="submit"
+                disabled={!commentDraft.trim() || submittingComment}
+                className="flex h-11 w-11 items-center justify-center rounded-full bg-brand text-white transition-all hover:bg-brand/90 disabled:opacity-40"
+              >
+                <Send className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </form>
         </div>
       )}

@@ -34,17 +34,17 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Starpace — Where Your World Comes to Life" },
+      { title: "Spaces1 — Where Your World Comes to Life" },
       {
         name: "description",
         content:
           "Spaces is a social platform for creators and communities: smart feeds, live audio rooms, stories, and encrypted chat in one beautiful place.",
       },
-      { property: "og:title", content: "Starpace — Where Your World Comes to Life" },
+      { property: "og:title", content: "Spaces1 — Where Your World Comes to Life" },
       {
         property: "og:description",
         content:
-          "Share moments, join live audio rooms, and grow your audience on Starpace — the social home for creators and communities.",
+          "Share moments, join live audio rooms, and grow your audience on Spaces1 — the social home for creators and communities.",
       },
     ],
   }),
@@ -204,7 +204,7 @@ function Nav() {
             <span className="flex h-8 w-8 items-center justify-center rounded-2xl bg-gradient-to-tr from-brand via-brand-pink to-brand-orange text-white shadow-soft group-hover:scale-105 transition-transform">
               <Sparkles className="h-4 w-4" />
             </span>
-            <span>Starpace</span>
+            <span>Spaces1</span>
           </a>
 
           <div className="hidden items-center space-x-8 text-sm font-bold text-foreground/80 md:flex">
@@ -437,7 +437,7 @@ function PhoneMockup() {
         <div className="relative h-full w-full overflow-hidden rounded-[2.5rem] bg-white">
           <div className="absolute top-0 flex h-24 w-full items-start justify-between bg-gradient-to-br from-brand to-brand-pink p-6">
             <Sparkles className="h-5 w-5 text-white" />
-            <span className="text-lg font-bold text-white">Starpace</span>
+            <span className="text-lg font-bold text-white">Spaces1</span>
             <Bell className="h-5 w-5 text-white" />
           </div>
           <div className="space-y-3 px-4 pt-28">
@@ -714,9 +714,9 @@ function Community() {
           </div>
         </Reveal>
         <Reveal className="order-1 space-y-6 md:order-2" delay={100}>
-          <p className="text-xs font-bold uppercase tracking-widest text-brand">Starpace</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-brand">Spaces1</p>
           <h2 className="text-4xl font-bold sm:text-5xl">
-            Find your people in <span className="gradient-text">Starpace</span>
+            Find your people in <span className="gradient-text">Spaces1</span>
           </h2>
           <p className="text-xl text-gray-600">
             Topic-based communities with live audio rooms, events, and shared collections. Drop in,
@@ -1038,7 +1038,7 @@ function Cta() {
               Ready to light up your world?
             </h2>
             <p className="text-lg text-white/80">
-              Join creators and communities on Starpace. Free forever, upgrade anytime.
+              Join creators and communities on Spaces1. Free forever, upgrade anytime.
             </p>
             <form
               className="mx-auto flex max-w-md flex-col gap-3 sm:flex-row"
@@ -1102,16 +1102,24 @@ function Footer() {
         { label: "Create an account", to: "/auth" },
         { label: "Sign in", to: "/auth" },
         { label: "Compare plans", to: "/pricing" },
-        { label: "Support", to: "/settings" },
+        { label: "Contact us", to: "/contact" },
+      ],
+    },
+    {
+      title: "Company",
+      links: [
+        { label: "About", to: "/about" },
+        { label: "Terms", to: "/terms" },
+        { label: "Privacy", to: "/privacy" },
       ],
     },
   ];
   return (
     <footer className="border-t border-gray-200 bg-white/60 pb-10 pt-20">
       <div className="container mx-auto px-6">
-        <div className="mb-16 grid gap-x-12 gap-y-10 sm:grid-cols-2 md:mb-20 md:grid-cols-5">
+        <div className="mb-16 grid gap-x-12 gap-y-10 sm:grid-cols-2 md:mb-20 md:grid-cols-6">
           <div className="md:col-span-2">
-            <p className="mb-4 text-2xl font-extrabold tracking-tight">Starpace</p>
+            <p className="mb-4 text-2xl font-extrabold tracking-tight">Spaces1</p>
             <p className="max-w-xs text-gray-500">
               The next-generation social platform built for creators and communities.
             </p>
@@ -1140,7 +1148,7 @@ function Footer() {
           ))}
         </div>
         <div className="flex flex-col items-center justify-between gap-4 border-t border-gray-200 pt-8 text-sm text-gray-400 sm:flex-row">
-          <p>© {new Date().getFullYear()} Starpace. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Spaces1. All rights reserved.</p>
           <p>Made for creators, everywhere.</p>
         </div>
       </div>

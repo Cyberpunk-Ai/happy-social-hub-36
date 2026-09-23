@@ -439,10 +439,6 @@ function ExplorePage() {
                         {p.bio || "Digital creator & visual explorer on Spaces"}
                       </p>
                     </div>
-                    <div className="mt-4 pt-3 border-t border-border/50 flex items-center justify-between text-xs font-semibold text-muted-foreground">
-                      <span>{compact(p.followers || 0)} followers</span>
-                      <span>{compact(p.following || 0)} following</span>
-                    </div>
                   </div>
                 ))
               ) : (

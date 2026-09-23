@@ -151,6 +151,8 @@ export interface PostComment {
   user_id: string;
   content: string;
   created_at: string;
+  /** Set when this comment is a reply to another comment on the same post. */
+  parent_id?: string | null;
 }
 
 export type Comment = PostComment;

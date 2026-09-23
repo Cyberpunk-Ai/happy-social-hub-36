@@ -12,16 +12,16 @@ import type { Post } from "@/lib/types";
 export const Route = createFileRoute("/post/$id")({
   head: () => ({
     meta: [
-      { title: "Post — Starpace" },
+      { title: "Post — Spaces1" },
       {
         name: "description",
         content:
-          "Read this post on Starpace, join the replies and follow the creator behind it.",
+          "Read this post on Spaces1, join the replies and follow the creator behind it.",
       },
-      { property: "og:title", content: "Post — Starpace" },
+      { property: "og:title", content: "Post — Spaces1" },
       {
         property: "og:description",
-        content: "Read this post on Starpace and join the conversation.",
+        content: "Read this post on Spaces1 and join the conversation.",
       },
       { property: "og:type", content: "article" },
       { name: "twitter:card", content: "summary_large_image" },

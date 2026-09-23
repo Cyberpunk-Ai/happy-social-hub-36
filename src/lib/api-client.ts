@@ -12,6 +12,7 @@ import {
   terminateSpace,
 } from "@/lib/moderation.functions";
 import { cacheProfiles, currentUser, currentUserId, rowToProfile } from "@/lib/profile-service";
+import { getForYouFeed } from "@/lib/recommendations.functions";
 import { emitRealtime } from "@/lib/realtime";
 import { appConfig } from "@/lib/config";
 import type {
@@ -97,6 +98,22 @@ export async function getPosts(
   if (options.filter === "following") options = { ...options, following: true };
   if (options.authorId) options = { ...options, userId: options.authorId };
   const limit = Math.min(options.limit ?? appConfig.feed.pageSize, appConfig.feed.maxPageSize);
+  // "For you" is ranked server-side from behaviour, the follow graph, quality
+  // and recency. If that fails (or nobody is signed in) we fall back below.
+  if (options.filter === "foryou" && !options.userId && !options.tag && !options.before) {
+    try {
+      const result = await getForYouFeed({ data: { limit } });
+      const ranked = (result?.posts ?? []).map((row: any) => rowToPost(row));
+      if (ranked.length > 0) {
+        await hydrateAuthors(ranked.map((p: Post) => p.user_id));
+        await hydrateEngagement(ranked);
+        return ranked;
+      }
+    } catch (err) {
+      console.warn("For you ranking unavailable, falling back to recency:", err);
+    }
+  }
+
   let query = db
     .from("posts")
     .select("*")
@@ -340,24 +357,35 @@ export async function getMyEngagement(postIds: string[]) {
 }
 
 
-export async function addPostComment(postId: string, content: string) {
+export async function addPostComment(postId: string, content: string, parentId?: string | null) {
   const userId = me();
   if (!isDbId(userId)) throw new Error("Sign in to comment");
   if (!isDbId(postId)) throw new Error("This post cannot be commented on yet");
+  const body = content.trim();
+  if (!body) throw new Error("Write something first");
 
   const { data: dataRow, error } = await db
     .from("comments")
-    .insert({ post_id: postId, user_id: userId, content })
+    .insert({
+      post_id: postId,
+      user_id: userId,
+      content: body,
+      parent_id: parentId && isDbId(parentId) ? parentId : null,
+    })
     .select("*")
     .single();
-  if (error) throw error;
+  if (error) {
+    console.error("Could not save comment:", error);
+    throw new Error("We couldn't post that reply. Please try again.");
+  }
 
   const comment: PostComment = {
     id: dataRow.id,
     post_id: postId,
     user_id: userId,
-    content,
+    content: body,
     created_at: dataRow.created_at ?? nowIso(),
+    parent_id: dataRow.parent_id ?? null,
   };
 
   const { count } = await db
@@ -732,15 +760,19 @@ export async function createSpace(input: {
   live?: boolean;
   startsAt?: string | null;
 }) {
-  const id = `space_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+  const title = (input.title ?? "").trim();
+  if (title.length < 3) throw new Error("Give your room a title of at least 3 characters.");
+  const hostId = me();
+  if (!isDbId(hostId)) throw new Error("Please sign in again before starting a room.");
+
   const isLive = input.live !== false;
+  // `spaces.id` is a database-generated uuid — never send a made-up id.
   const { data, error } = await db
     .from("spaces")
     .insert({
-      id,
-      title: input.title,
-      topic: input.topic,
-      host_id: me(),
+      title,
+      topic: (input.topic ?? "").trim() || "General",
+      host_id: hostId,
       gradient: input.gradient ?? "from-brand to-brand-pink",
       live: isLive,
       listeners: isLive ? 1 : 0,
@@ -748,9 +780,16 @@ export async function createSpace(input: {
     })
     .select("*")
     .single();
-  if (error) throw error;
+  if (error || !data) {
+    console.error("Could not create space:", error);
+    throw new Error("We couldn't start that room. Please try again.");
+  }
+  const id = String(data.id);
   if (isLive) {
-    await db.from("space_participants").insert({ space_id: id, user_id: me(), role: "host" });
+    const { error: joinError } = await db
+      .from("space_participants")
+      .insert({ space_id: id, user_id: hostId, role: "host" });
+    if (joinError) console.error("Could not add host to space:", joinError);
   }
   const space = rowToSpace(data);
   emitRealtime("space:created", { space });

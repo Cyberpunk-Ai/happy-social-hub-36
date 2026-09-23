@@ -232,11 +232,11 @@ export const COMPARISON_PERKS: ComparisonPerk[] = [
   },
   {
     name: "Platform Fee",
-    description: "Percentage retained on creator payouts",
+    description: "Percentage retained on creator earnings at withdrawal",
     category: "Monetization",
-    free: "N/A",
-    plus: "5%",
-    pro: "0% (Keep 100%)",
+    free: "5%",
+    plus: "3%",
+    pro: "1%",
   },
 
   // Spaces & Media
