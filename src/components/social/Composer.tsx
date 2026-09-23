@@ -500,7 +500,26 @@ export function Composer({
                   </button>
                 </div>
 
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="composer-poll-question"
+                    className="block text-xs font-bold text-foreground"
+                  >
+                    Poll question
+                  </label>
+                  <input
+                    id="composer-poll-question"
+                    type="text"
+                    value={pollQuestion}
+                    onChange={(e) => setPollQuestion(e.target.value)}
+                    placeholder="What should we talk about next?"
+                    maxLength={140}
+                    className="min-h-[44px] w-full rounded-xl border border-border bg-card px-3 py-2 text-sm outline-none focus:border-brand"
+                  />
+                </div>
+
                 <div className="space-y-2">
+                  <span className="block text-xs font-bold text-foreground">Answers</span>
                   {pollOptions.map((opt, idx) => (
                     <div key={idx} className="flex items-center gap-2">
                       <input
