@@ -530,7 +530,7 @@ function PostCardBase({
     setSubmittingComment(true);
     const text = commentDraft.trim();
     try {
-      const res = await addPostComment(post.id, text);
+      const res = await addPostComment(post.id, text, replyTo?.id ?? null);
       const newComment = res.comment as Comment;
       // The same comment also arrives through the realtime bridge, so only add
       // it when it isn't already in the list.
@@ -538,7 +538,9 @@ function PostCardBase({
         prev.some((c) => c.id === newComment.id) ? prev : [...prev, newComment],
       );
       setCommentDraft("");
-      toast.success("Comment added");
+      setReplyTo(null);
+      setShowAllComments(true);
+      toast.success(replyTo ? "Reply added" : "Comment added");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not add your comment");
     } finally {
