@@ -732,15 +732,19 @@ export async function createSpace(input: {
   live?: boolean;
   startsAt?: string | null;
 }) {
-  const id = `space_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+  const title = (input.title ?? "").trim();
+  if (title.length < 3) throw new Error("Give your room a title of at least 3 characters.");
+  const hostId = me();
+  if (!isDbId(hostId)) throw new Error("Please sign in again before starting a room.");
+
   const isLive = input.live !== false;
+  // `spaces.id` is a database-generated uuid — never send a made-up id.
   const { data, error } = await db
     .from("spaces")
     .insert({
-      id,
-      title: input.title,
-      topic: input.topic,
-      host_id: me(),
+      title,
+      topic: (input.topic ?? "").trim() || "General",
+      host_id: hostId,
       gradient: input.gradient ?? "from-brand to-brand-pink",
       live: isLive,
       listeners: isLive ? 1 : 0,
@@ -748,9 +752,16 @@ export async function createSpace(input: {
     })
     .select("*")
     .single();
-  if (error) throw error;
+  if (error || !data) {
+    console.error("Could not create space:", error);
+    throw new Error("We couldn't start that room. Please try again.");
+  }
+  const id = String(data.id);
   if (isLive) {
-    await db.from("space_participants").insert({ space_id: id, user_id: me(), role: "host" });
+    const { error: joinError } = await db
+      .from("space_participants")
+      .insert({ space_id: id, user_id: hostId, role: "host" });
+    if (joinError) console.error("Could not add host to space:", joinError);
   }
   const space = rowToSpace(data);
   emitRealtime("space:created", { space });
