@@ -1102,7 +1102,15 @@ function Footer() {
         { label: "Create an account", to: "/auth" },
         { label: "Sign in", to: "/auth" },
         { label: "Compare plans", to: "/pricing" },
-        { label: "Support", to: "/settings" },
+        { label: "Contact us", to: "/contact" },
+      ],
+    },
+    {
+      title: "Company",
+      links: [
+        { label: "About", to: "/about" },
+        { label: "Terms", to: "/terms" },
+        { label: "Privacy", to: "/privacy" },
       ],
     },
   ];
