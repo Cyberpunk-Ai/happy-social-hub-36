@@ -12,6 +12,7 @@ import {
   terminateSpace,
 } from "@/lib/moderation.functions";
 import { cacheProfiles, currentUser, currentUserId, rowToProfile } from "@/lib/profile-service";
+import { getForYouFeed } from "@/lib/recommendations.functions";
 import { emitRealtime } from "@/lib/realtime";
 import { appConfig } from "@/lib/config";
 import type {
@@ -101,7 +102,6 @@ export async function getPosts(
   // and recency. If that fails (or nobody is signed in) we fall back below.
   if (options.filter === "foryou" && !options.userId && !options.tag && !options.before) {
     try {
-      const { getForYouFeed } = await import("@/lib/recommendations.functions");
       const result = await getForYouFeed({ data: { limit } });
       const ranked = (result?.posts ?? []).map((row: any) => rowToPost(row));
       if (ranked.length > 0) {
