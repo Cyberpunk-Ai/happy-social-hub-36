@@ -97,6 +97,23 @@ export async function getPosts(
   if (options.filter === "following") options = { ...options, following: true };
   if (options.authorId) options = { ...options, userId: options.authorId };
   const limit = Math.min(options.limit ?? appConfig.feed.pageSize, appConfig.feed.maxPageSize);
+  // "For you" is ranked server-side from behaviour, the follow graph, quality
+  // and recency. If that fails (or nobody is signed in) we fall back below.
+  if (options.filter === "foryou" && !options.userId && !options.tag && !options.before) {
+    try {
+      const { getForYouFeed } = await import("@/lib/recommendations.functions");
+      const result = await getForYouFeed({ data: { limit } });
+      const ranked = (result?.posts ?? []).map((row: any) => rowToPost(row));
+      if (ranked.length > 0) {
+        await hydrateAuthors(ranked.map((p: Post) => p.user_id));
+        await hydrateEngagement(ranked);
+        return ranked;
+      }
+    } catch (err) {
+      console.warn("For you ranking unavailable, falling back to recency:", err);
+    }
+  }
+
   let query = db
     .from("posts")
     .select("*")
